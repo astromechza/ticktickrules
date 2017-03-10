@@ -60,12 +60,17 @@ func parseRuleItem(r string, maxsum int) ([]int, error) {
 	} else if ruleType2.MatchString(r) {
 
 		parts := strings.Split(r, "/")
+		lst := 0
 		for _, p := range parts {
 			v, err := strconv.Atoi(p)
 			if err != nil {
 				return nil, fmt.Errorf("Rule item '%s' could not be parsed", r)
 			}
+			if v <= lst {
+				return nil, fmt.Errorf("Rule item '%s' has bad ordering", r)
+			}
 			out = append(out, v)
+			lst = v
 		}
 
 	} else {
@@ -167,9 +172,21 @@ func (r *Rule) NextUTC() time.Time {
 	return r.NextFrom(time.Now().UTC())
 }
 
+func roundUp(current int, items []int) int {
+	if len(items) == 0 {
+		return current
+	}
+	for _, i := range items {
+		if i >= current {
+			return i
+		}
+	}
+	return items[0]
+}
+
 // NextFrom returns the next time this rule will run after the given time
 func (r *Rule) NextFrom(from time.Time) time.Time {
-	return time.Now().UTC()
+	return r.NaiveNextFrom(from)
 }
 
 // Matches determines whether the given time is matched by the rule
@@ -202,11 +219,18 @@ func (r *Rule) Matches(t time.Time) bool {
 	return true
 }
 
-const naiveMaxIterations = 31 * 8 * 12 * 60 * 24
+const naiveMaxIterations = 31 * 8 * 12
 
 // NaiveNextFrom is a very naive method of finding the next time a rule matches
 func (r *Rule) NaiveNextFrom(from time.Time) time.Time {
 	from = from.Add(time.Minute)
+	nextMinute := roundUp(from.Minute(), r.minute)
+	from = time.Date(from.Year(), from.Month(), from.Day(), from.Hour(), nextMinute, 0, 0, from.Location())
+	if r.Matches(from) {
+		return from
+	}
+	nextHour := roundUp(from.Hour(), r.hour)
+	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, nextMinute, 0, 0, from.Location())
 	numIterations := 0
 	for {
 		if r.Matches(from) {
