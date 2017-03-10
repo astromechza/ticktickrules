@@ -28,7 +28,7 @@ var ruleType1 = regexp.MustCompile(`^\*/\d+$`)
 // rule to support 0/10/20
 var ruleType2 = regexp.MustCompile(`^\d+(?:/\d+)+$`)
 
-func parseRuleItem(r string) ([]int, error) {
+func parseRuleItem(r string, maxsum int) ([]int, error) {
 	var out []int
 	if r == "*" {
 		// noop
@@ -44,7 +44,7 @@ func parseRuleItem(r string) ([]int, error) {
 			return nil, fmt.Errorf("Rule item '%s' cannot be 0", r)
 		}
 
-		if v >= 60 {
+		if v >= maxsum {
 			return nil, fmt.Errorf("Rule item '%s' does not divide", r)
 		}
 
@@ -52,7 +52,7 @@ func parseRuleItem(r string) ([]int, error) {
 		for {
 			out = append(out, sum)
 			sum += v
-			if sum >= 60 {
+			if sum >= maxsum {
 				break
 			}
 		}
@@ -101,10 +101,10 @@ func doesMatch(v int, vs []int) bool {
 }
 
 // NewRule constructs a new Rule structure from the cron-like arguments provided
-func NewRule(minute, hour, dayOfWeek, dayOfMonth, month string) (*Rule, error) {
+func NewRule(minute, hour, dayOfMonth, month, dayOfWeek string) (*Rule, error) {
 	output := new(Rule)
 
-	m, err := parseRuleItem(minute)
+	m, err := parseRuleItem(minute, 60)
 	if err != nil {
 		return nil, err
 	}
@@ -114,17 +114,17 @@ func NewRule(minute, hour, dayOfWeek, dayOfMonth, month string) (*Rule, error) {
 	}
 	output.minuteRule = minute
 
-	h, err := parseRuleItem(hour)
+	h, err := parseRuleItem(hour, 24)
 	if err != nil {
 		return nil, err
 	}
 	output.hour = h
-	if err := validateItemsRange(output.hour, 0, 59); err != nil {
+	if err := validateItemsRange(output.hour, 0, 23); err != nil {
 		return nil, fmt.Errorf("Hour rule invalid: %s", err.Error())
 	}
 	output.hourRule = hour
 
-	dow, err := parseRuleItem(dayOfWeek)
+	dow, err := parseRuleItem(dayOfWeek, 7)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func NewRule(minute, hour, dayOfWeek, dayOfMonth, month string) (*Rule, error) {
 	}
 	output.dayOfWeekRule = dayOfWeek
 
-	dom, err := parseRuleItem(dayOfMonth)
+	dom, err := parseRuleItem(dayOfMonth, 31)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func NewRule(minute, hour, dayOfWeek, dayOfMonth, month string) (*Rule, error) {
 	}
 	output.dayOfMonthRule = dayOfMonth
 
-	m, err = parseRuleItem(month)
+	m, err = parseRuleItem(month, 24)
 	if err != nil {
 		return nil, err
 	}
@@ -202,16 +202,17 @@ func (r *Rule) Matches(t time.Time) bool {
 	return true
 }
 
-const naiveMaxIterations = 31 * 7 * 12 * 60 * 24
+const naiveMaxIterations = 31 * 8 * 12 * 60 * 24
 
 // NaiveNextFrom is a very naive method of finding the next time a rule matches
 func (r *Rule) NaiveNextFrom(from time.Time) time.Time {
+	from = from.Add(time.Minute)
 	numIterations := 0
 	for {
 		if r.Matches(from) {
 			return from.Truncate(time.Minute)
 		}
-		from = from.Add(time.Second)
+		from = from.Add(time.Minute)
 		numIterations++
 		if numIterations > naiveMaxIterations {
 			return time.Unix(1<<62, 0)
