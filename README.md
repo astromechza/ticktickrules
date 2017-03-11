@@ -33,11 +33,3 @@ func Something() {
 }
 
 ```
-
-### Development:
-
-This project uses a couple of useful dev dependencies:
-
-```
-$ go get github.com/kardianos/govendor
-```
