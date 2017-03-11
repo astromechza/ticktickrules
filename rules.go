@@ -1,3 +1,8 @@
+// Package ticktickrules provides a basic Cron-like rule matcher for doing simple calculations of
+// cron expressions. It exposes functionality for determining the next time a cron expression is matched.
+//
+// Only the simple cron rules are available but this is pretty much good enough for most applications. If you
+// want to support things like @hourly, @weekly, etc then you should combine this with higher level time windows.
 package ticktickrules
 
 import (
@@ -105,7 +110,20 @@ func doesMatch(v int, vs []int) bool {
 	return false
 }
 
-// NewRule constructs a new Rule structure from the cron-like arguments provided
+// NewRule constructs and validates a new Rule structure from the cron-like arguments provided.
+// Each rule string can be of the following forms:
+//     "*" - matches any value
+//     "*/N" - matches 0 and any multiple of N
+//     "N/M/O.." - matches N or M or O, etc.
+//
+//     field	 allowed values
+//     -----	 --------------
+//     minute	 0-59
+//     hour		 0-23
+//     day of month	 1-31
+//     month	 1-12
+//     day of week	 0-7 (0	or 7 is	Sun)
+// An error will be returned if one of the rules is invalid.
 func NewRule(minute, hour, dayOfMonth, month, dayOfWeek string) (*Rule, error) {
 	output := new(Rule)
 
@@ -162,34 +180,22 @@ func NewRule(minute, hour, dayOfMonth, month, dayOfWeek string) (*Rule, error) {
 	return output, nil
 }
 
-// String converts the rule back to its native cron expression
+// String converts the rule back to its native 5-part cron expression.
 func (r *Rule) String() string {
 	return fmt.Sprintf("%s %s %s %s %s", r.minuteRule, r.hourRule, r.dayOfMonthRule, r.monthRule, r.dayOfWeekRule)
 }
 
-// NextUTC returns the next time this rule is true
+// NextUTC returns the next UTC time this rule is true.
 func (r *Rule) NextUTC() time.Time {
 	return r.NextFrom(time.Now().UTC())
 }
 
-func roundUp(current int, items []int) int {
-	if len(items) == 0 {
-		return current + 1
-	}
-	for _, i := range items {
-		if i > current {
-			return i
-		}
-	}
-	return items[0]
-}
-
-// NextFrom returns the next time this rule will run after the given time
+// NextFrom returns the next time this rule will run after the given time.
 func (r *Rule) NextFrom(from time.Time) time.Time {
-	return r.NaiveNextFrom(from)
+	return r.naiveNextFrom(from)
 }
 
-// Matches determines whether the given time is matched by the rule
+// Matches returns whether the given time is matched by the rule.
 func (r *Rule) Matches(t time.Time) bool {
 	if len(r.month) > 0 {
 		if !doesMatch(int(t.Month()), r.month) {
@@ -221,8 +227,21 @@ func (r *Rule) Matches(t time.Time) bool {
 
 const naiveMaxIterations = 31 * 8 * 12
 
-// NaiveNextFrom is a very naive method of finding the next time a rule matches
-func (r *Rule) NaiveNextFrom(from time.Time) time.Time {
+func roundUp(current int, items []int) int {
+	if len(items) == 0 {
+		return current + 1
+	}
+	for _, i := range items {
+		if i > current {
+			return i
+		}
+	}
+	return items[0]
+}
+
+// naiveNextFrom is a slightly naive method of finding the next time a rule matches, it jumps to the next correct minute and hour
+// and solves for day by iterating in 24 hour increments. This could be made better but is good enough for now.
+func (r *Rule) naiveNextFrom(from time.Time) time.Time {
 	originalFrom := from
 	originalMinute := from.Minute()
 	originalHour := from.Hour()

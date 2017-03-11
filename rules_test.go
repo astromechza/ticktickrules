@@ -122,7 +122,7 @@ func TestMatchesHour(t *testing.T) {
 func TestNaiveNext(t *testing.T) {
 	r, _ := NewRule("*", "*", "*", "*", "*")
 	t1 := time.Now()
-	t2 := r.NaiveNextFrom(t1)
+	t2 := r.NextFrom(t1)
 	t1 = t1.Truncate(time.Minute).Add(time.Minute)
 	if t1 != t2 {
 		t.Errorf("%s should have matched %s", t1, t2)
@@ -132,7 +132,7 @@ func TestNaiveNext(t *testing.T) {
 func TestNaiveNextFarFuture(t *testing.T) {
 	r, _ := NewRule("*", "*", "31", "2", "*")
 	t1 := time.Now()
-	t2 := r.NaiveNextFrom(t1)
+	t2 := r.NextFrom(t1)
 	if t2.Year() < 3000 {
 		t.Errorf("Year should have been max")
 	}
@@ -141,31 +141,31 @@ func TestNaiveNextFarFuture(t *testing.T) {
 func TestNaiveMultiple(t *testing.T) {
 	start := time.Date(2000, 1, 1, 1, 0, 1, 0, time.UTC)
 	r, _ := NewRule("*/25", "*/2", "*", "*", "*")
-	n1 := r.NaiveNextFrom(start)
+	n1 := r.NextFrom(start)
 	e1 := time.Date(2000, 1, 1, 2, 25, 0, 0, time.UTC)
 	if n1 != e1 {
 		t.Errorf("n1 %s != %s", n1, e1)
 		return
 	}
-	n2 := r.NaiveNextFrom(n1)
+	n2 := r.NextFrom(n1)
 	e2 := time.Date(2000, 1, 1, 2, 50, 0, 0, time.UTC)
 	if n2 != e2 {
 		t.Errorf("n2 %s != %s", n2, e2)
 		return
 	}
-	n3 := r.NaiveNextFrom(n2)
+	n3 := r.NextFrom(n2)
 	e3 := time.Date(2000, 1, 1, 4, 0, 0, 0, time.UTC)
 	if n3 != e3 {
 		t.Errorf("n3 %s != %s", n3, e3)
 		return
 	}
-	n4 := r.NaiveNextFrom(n3)
+	n4 := r.NextFrom(n3)
 	e4 := time.Date(2000, 1, 1, 4, 25, 0, 0, time.UTC)
 	if n4 != e4 {
 		t.Errorf("n4 %s != %s", n4, e4)
 		return
 	}
-	n5 := r.NaiveNextFrom(n4)
+	n5 := r.NextFrom(n4)
 	e5 := time.Date(2000, 1, 1, 4, 50, 0, 0, time.UTC)
 	if n5 != e5 {
 		t.Errorf("n5 %s != %s", n5, e5)
@@ -176,7 +176,7 @@ func TestNaiveMultiple(t *testing.T) {
 func TestNaiveMultipleDays(t *testing.T) {
 	start := time.Date(2000, 2, 28, 23, 59, 0, 0, time.UTC)
 	r, _ := NewRule("*", "*", "31", "*", "*")
-	n1 := r.NaiveNextFrom(start)
+	n1 := r.NextFrom(start)
 	e1 := time.Date(2000, 3, 31, 0, 0, 0, 0, time.UTC)
 	if n1 != e1 {
 		t.Errorf("n1 %s != %s", n1, e1)
