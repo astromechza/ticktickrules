@@ -129,13 +129,57 @@ func TestNaiveNext(t *testing.T) {
 	}
 }
 
-// This is slow! seems to take about 0.2 seconds!
-// TODO: remove when we have a better method
 func TestNaiveNextFarFuture(t *testing.T) {
 	r, _ := NewRule("*", "*", "31", "2", "*")
 	t1 := time.Now()
 	t2 := r.NaiveNextFrom(t1)
 	if t2.Year() < 3000 {
 		t.Errorf("Year should have been max")
+	}
+}
+
+func TestNaiveMultiple(t *testing.T) {
+	start := time.Date(2000, 1, 1, 1, 0, 1, 0, time.UTC)
+	r, _ := NewRule("*/25", "*/2", "*", "*", "*")
+	n1 := r.NaiveNextFrom(start)
+	e1 := time.Date(2000, 1, 1, 2, 25, 0, 0, time.UTC)
+	if n1 != e1 {
+		t.Errorf("n1 %s != %s", n1, e1)
+		return
+	}
+	n2 := r.NaiveNextFrom(n1)
+	e2 := time.Date(2000, 1, 1, 2, 50, 0, 0, time.UTC)
+	if n2 != e2 {
+		t.Errorf("n2 %s != %s", n2, e2)
+		return
+	}
+	n3 := r.NaiveNextFrom(n2)
+	e3 := time.Date(2000, 1, 1, 4, 0, 0, 0, time.UTC)
+	if n3 != e3 {
+		t.Errorf("n3 %s != %s", n3, e3)
+		return
+	}
+	n4 := r.NaiveNextFrom(n3)
+	e4 := time.Date(2000, 1, 1, 4, 25, 0, 0, time.UTC)
+	if n4 != e4 {
+		t.Errorf("n4 %s != %s", n4, e4)
+		return
+	}
+	n5 := r.NaiveNextFrom(n4)
+	e5 := time.Date(2000, 1, 1, 4, 50, 0, 0, time.UTC)
+	if n5 != e5 {
+		t.Errorf("n5 %s != %s", n5, e5)
+		return
+	}
+}
+
+func TestNaiveMultipleDays(t *testing.T) {
+	start := time.Date(2000, 2, 28, 23, 59, 0, 0, time.UTC)
+	r, _ := NewRule("*", "*", "31", "*", "*")
+	n1 := r.NaiveNextFrom(start)
+	e1 := time.Date(2000, 3, 31, 0, 0, 0, 0, time.UTC)
+	if n1 != e1 {
+		t.Errorf("n1 %s != %s", n1, e1)
+		return
 	}
 }

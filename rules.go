@@ -174,10 +174,10 @@ func (r *Rule) NextUTC() time.Time {
 
 func roundUp(current int, items []int) int {
 	if len(items) == 0 {
-		return current
+		return current + 1
 	}
 	for _, i := range items {
-		if i >= current {
+		if i > current {
 			return i
 		}
 	}
@@ -223,20 +223,40 @@ const naiveMaxIterations = 31 * 8 * 12
 
 // NaiveNextFrom is a very naive method of finding the next time a rule matches
 func (r *Rule) NaiveNextFrom(from time.Time) time.Time {
-	from = from.Add(time.Minute)
-	nextMinute := roundUp(from.Minute(), r.minute)
-	from = time.Date(from.Year(), from.Month(), from.Day(), from.Hour(), nextMinute, 0, 0, from.Location())
-	if r.Matches(from) {
-		return from
+	originalFrom := from
+	originalMinute := from.Minute()
+	originalHour := from.Hour()
+
+	nextMinute := roundUp(originalMinute, r.minute)
+	if nextMinute >= 60 {
+		nextMinute = 0
 	}
-	nextHour := roundUp(from.Hour(), r.hour)
-	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, nextMinute, 0, 0, from.Location())
+	from = time.Date(from.Year(), from.Month(), from.Day(), from.Hour(), nextMinute, 0, 0, from.Location())
+	// if this is an increase then it's in the future
+	if nextMinute > originalMinute {
+		if r.Matches(from) {
+			return from
+		}
+	}
+	// either in the future but not matched, or in the past
+	nextHour := roundUp(originalHour, r.hour)
+	if nextHour >= 24 {
+		nextHour = 0
+	}
+	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, from.Minute(), 0, 0, from.Location())
+
+	// jump a day ahead to protect ourselves
+	if from.Before(originalFrom) {
+		from = from.Add(24 * time.Hour)
+	}
+
+	// now iterate in days until we hit a day that matches
 	numIterations := 0
 	for {
 		if r.Matches(from) {
 			return from.Truncate(time.Minute)
 		}
-		from = from.Add(time.Minute)
+		from = from.Add(24 * time.Hour)
 		numIterations++
 		if numIterations > naiveMaxIterations {
 			return time.Unix(1<<62, 0)
