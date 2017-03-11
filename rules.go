@@ -110,6 +110,20 @@ func doesMatch(v int, vs []int) bool {
 	return false
 }
 
+const naiveMaxIterations = 31 * 8 * 12
+
+func roundUp(current int, items []int) int {
+	if len(items) == 0 {
+		return current + 1
+	}
+	for _, i := range items {
+		if i > current {
+			return i
+		}
+	}
+	return items[0]
+}
+
 // NewRule constructs and validates a new Rule structure from the cron-like arguments provided.
 // Each rule string can be of the following forms:
 //     "*" - matches any value
@@ -187,61 +201,11 @@ func (r *Rule) String() string {
 
 // NextUTC returns the next UTC time this rule is true.
 func (r *Rule) NextUTC() time.Time {
-	return r.NextFrom(time.Now().UTC())
+	return r.NextAfter(time.Now().UTC())
 }
 
-// NextFrom returns the next time this rule will run after the given time.
-func (r *Rule) NextFrom(from time.Time) time.Time {
-	return r.naiveNextFrom(from)
-}
-
-// Matches returns whether the given time is matched by the rule.
-func (r *Rule) Matches(t time.Time) bool {
-	if len(r.month) > 0 {
-		if !doesMatch(int(t.Month()), r.month) {
-			return false
-		}
-	}
-	if len(r.dayOfWeek) > 0 {
-		if !doesMatch(int(t.Weekday()), r.dayOfWeek) {
-			return false
-		}
-	}
-	if len(r.dayOfMonth) > 0 {
-		if !doesMatch(t.Day(), r.dayOfMonth) {
-			return false
-		}
-	}
-	if len(r.hour) > 0 {
-		if !doesMatch(t.Hour(), r.hour) {
-			return false
-		}
-	}
-	if len(r.minute) > 0 {
-		if !doesMatch(t.Minute(), r.minute) {
-			return false
-		}
-	}
-	return true
-}
-
-const naiveMaxIterations = 31 * 8 * 12
-
-func roundUp(current int, items []int) int {
-	if len(items) == 0 {
-		return current + 1
-	}
-	for _, i := range items {
-		if i > current {
-			return i
-		}
-	}
-	return items[0]
-}
-
-// naiveNextFrom is a slightly naive method of finding the next time a rule matches, it jumps to the next correct minute and hour
-// and solves for day by iterating in 24 hour increments. This could be made better but is good enough for now.
-func (r *Rule) naiveNextFrom(from time.Time) time.Time {
+// NextAfter returns the next time this rule will match after the given time.
+func (r *Rule) NextAfter(from time.Time) time.Time {
 	originalFrom := from
 	originalMinute := from.Minute()
 	originalHour := from.Hour()
@@ -281,4 +245,47 @@ func (r *Rule) naiveNextFrom(from time.Time) time.Time {
 			return time.Unix(1<<62, 0)
 		}
 	}
+}
+
+// UntilNext returns the duration until the next match.
+func (r *Rule) UntilNext(from time.Time) time.Duration {
+	next := r.NextAfter(from)
+	return next.Sub(from)
+}
+
+// UntilNextUTC returns the duration until the next match from the current UTC time.
+func (r *Rule) UntilNextUTC() time.Duration {
+	now := time.Now().UTC()
+	next := r.NextAfter(now)
+	return next.Sub(now)
+}
+
+// Matches returns whether the given time is matched by the rule.
+func (r *Rule) Matches(t time.Time) bool {
+	if len(r.month) > 0 {
+		if !doesMatch(int(t.Month()), r.month) {
+			return false
+		}
+	}
+	if len(r.dayOfWeek) > 0 {
+		if !doesMatch(int(t.Weekday()), r.dayOfWeek) {
+			return false
+		}
+	}
+	if len(r.dayOfMonth) > 0 {
+		if !doesMatch(t.Day(), r.dayOfMonth) {
+			return false
+		}
+	}
+	if len(r.hour) > 0 {
+		if !doesMatch(t.Hour(), r.hour) {
+			return false
+		}
+	}
+	if len(r.minute) > 0 {
+		if !doesMatch(t.Minute(), r.minute) {
+			return false
+		}
+	}
+	return true
 }

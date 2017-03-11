@@ -24,10 +24,8 @@ func Something() {
 
     // Loop forever
     for {
-        now := time.Now()
-        nextTick := rule.NextFrom(now)
         // Naive sleeping
-        time.Sleep(nextTick.Sub(now))
+        time.Sleep(rule.UntilNext(time.Now()))
         fmt.Println("Hi!)
     }
 }
