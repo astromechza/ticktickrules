@@ -10,7 +10,7 @@ want to support things like @hourly, @weekly, etc then you should combine this w
 
 A simple pretend cron example:
 
-```
+```golang
 import "github.com/AstromechZA/ticktickrules"
 
 func Something() {
@@ -22,9 +22,11 @@ func Something() {
         panic(err.Error())
     }
 
+    // Loop forever
     for {
         now := time.Now()
         nextTick := rule.NextFrom(now)
+        // Naive sleeping
         time.Sleep(nextTick.Sub(now))
         fmt.Println("Hi!)
     }
