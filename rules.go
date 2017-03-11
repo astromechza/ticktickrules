@@ -130,13 +130,14 @@ func roundUp(current int, items []int) int {
 //     "*/N" - matches 0 and any multiple of N
 //     "N/M/O.." - matches N or M or O, etc.
 //
-//     field	 allowed values
-//     -----	 --------------
-//     minute	 0-59
-//     hour		 0-23
-//     day of month	 1-31
-//     month	 1-12
-//     day of week	 0-7 (0	or 7 is	Sun)
+//     field         allowed values
+//     -----         --------------
+//     minute        0-59
+//     hour          0-23
+//     day of month  1-31
+//     month         1-12
+//     day of week   0-7 (0	or 7 is	Sun)
+//
 // An error will be returned if one of the rules is invalid.
 func NewRule(minute, hour, dayOfMonth, month, dayOfWeek string) (*Rule, error) {
 	output := new(Rule)
