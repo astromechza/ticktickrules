@@ -6,6 +6,8 @@ cron expressions. It exposes functionality for determining the next time a cron 
 Only the simple cron rules are available but this is pretty much good enough for most applications. If you
 want to support things like @hourly, @weekly, etc then you should combine this with higher level time windows.
 
+See the documentation at [godoc.org/github.com/AstromechZA/ticktickrules](https://godoc.org/github.com/AstromechZA/ticktickrules).
+
 ### Example:
 
 A simple pretend cron example:
