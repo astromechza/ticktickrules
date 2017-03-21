@@ -244,13 +244,16 @@ func (r *Rule) NextAfter(from time.Time) time.Time {
 	nextHour := roundUp(originalHour, r.hour, 24)
 	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, from.Minute(), 0, 0, from.Location())
 
-	if r.Matches(from) {
-		return from
+	if from.After(originalFrom) {
+		if r.Matches(from) {
+			return from
+		}
 	}
 
-	// otherwise truncate to the first minute and hour
+	// otherwise truncate to the first minute and hour and into the next day
 	nextMinute = roundUp(59, r.minute, 60)
 	nextHour = roundUp(23, r.hour, 24)
+	from = from.Add(24 * time.Hour)
 	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, nextMinute, 0, 0, from.Location())
 
 	// now iterate in days until we hit a day that matches
