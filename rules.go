@@ -112,9 +112,13 @@ func doesMatch(v int, vs []int) bool {
 
 const naiveMaxIterations = 31 * 8 * 12
 
-func roundUp(current int, items []int) int {
+func roundUp(current int, items []int, ceiling int) int {
 	if len(items) == 0 {
-		return current + 1
+		r := current + 1
+		if r > ceiling {
+			return 0
+		}
+		return r
 	}
 	for _, i := range items {
 		if i > current {
@@ -211,10 +215,7 @@ func (r *Rule) NextAfter(from time.Time) time.Time {
 	originalMinute := from.Minute()
 	originalHour := from.Hour()
 
-	nextMinute := roundUp(originalMinute, r.minute)
-	if nextMinute >= 60 {
-		nextMinute = 0
-	}
+	nextMinute := roundUp(originalMinute, r.minute, 60)
 	from = time.Date(from.Year(), from.Month(), from.Day(), from.Hour(), nextMinute, 0, 0, from.Location())
 	// if this is an increase then it's in the future
 	if nextMinute > originalMinute {
@@ -223,10 +224,7 @@ func (r *Rule) NextAfter(from time.Time) time.Time {
 		}
 	}
 	// either in the future but not matched, or in the past
-	nextHour := roundUp(originalHour, r.hour)
-	if nextHour >= 24 {
-		nextHour = 0
-	}
+	nextHour := roundUp(originalHour, r.hour, 24)
 	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, from.Minute(), 0, 0, from.Location())
 
 	// jump a day ahead to protect ourselves
