@@ -1,7 +1,6 @@
 package ticktickrules
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -227,8 +226,6 @@ func TestNaiveNextEdgeCases(t *testing.T) {
 
 func TestNaiveNextEdgeCasesDay(t *testing.T) {
 	currentTime := time.Date(2000, 4, 28, 14, 28, 42, 0, time.UTC)
-
-	fmt.Println("hi")
 
 	r := MustNewRule("*", "12", "*", "*", "*")
 	n := r.NextAfter(currentTime)
