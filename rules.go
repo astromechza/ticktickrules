@@ -70,12 +70,18 @@ func parseRuleItem(r string, maxsum int) ([]int, error) {
 			v, err := strconv.Atoi(p)
 			if err != nil {
 				return nil, fmt.Errorf("Rule item '%s' could not be parsed", r)
+			} else if v < 0 {
+				return nil, fmt.Errorf("Rule item '%s' cannot have negative value", r)
 			}
-			if v <= lst {
+
+			if len(out) == 0 {
+				out = append(out, v)
+			} else if v <= lst {
 				return nil, fmt.Errorf("Rule item '%s' has bad ordering", r)
+			} else {
+				out = append(out, v)
+				lst = v
 			}
-			out = append(out, v)
-			lst = v
 		}
 
 	} else {
@@ -115,7 +121,7 @@ const naiveMaxIterations = 31 * 8 * 12
 func roundUp(current int, items []int, ceiling int) int {
 	if len(items) == 0 {
 		r := current + 1
-		if r > ceiling {
+		if r >= ceiling {
 			return 0
 		}
 		return r
@@ -199,6 +205,15 @@ func NewRule(minute, hour, dayOfMonth, month, dayOfWeek string) (*Rule, error) {
 	return output, nil
 }
 
+// MustNewRule is like NewRule but panics if there is an error parsing the rule
+func MustNewRule(minute, hour, dayOfMonth, month, dayOfWeek string) *Rule {
+	r, err := NewRule(minute, hour, dayOfMonth, month, dayOfWeek)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 // String converts the rule back to its native 5-part cron expression.
 func (r *Rule) String() string {
 	return fmt.Sprintf("%s %s %s %s %s", r.minuteRule, r.hourRule, r.dayOfMonthRule, r.monthRule, r.dayOfWeekRule)
@@ -215,22 +230,28 @@ func (r *Rule) NextAfter(from time.Time) time.Time {
 	originalMinute := from.Minute()
 	originalHour := from.Hour()
 
+	// first attempt to match in the current hour
 	nextMinute := roundUp(originalMinute, r.minute, 60)
 	from = time.Date(from.Year(), from.Month(), from.Day(), from.Hour(), nextMinute, 0, 0, from.Location())
-	// if this is an increase then it's in the future
-	if nextMinute > originalMinute {
+	if from.After(originalFrom) {
+		// double check (this shouldn't be needed)
 		if r.Matches(from) {
 			return from
 		}
 	}
+
 	// either in the future but not matched, or in the past
 	nextHour := roundUp(originalHour, r.hour, 24)
 	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, from.Minute(), 0, 0, from.Location())
 
-	// jump a day ahead to protect ourselves
-	if from.Before(originalFrom) {
-		from = from.Add(24 * time.Hour)
+	if r.Matches(from) {
+		return from
 	}
+
+	// otherwise truncate to the first minute and hour
+	nextMinute = roundUp(59, r.minute, 60)
+	nextHour = roundUp(23, r.hour, 24)
+	from = time.Date(from.Year(), from.Month(), from.Day(), nextHour, nextMinute, 0, 0, from.Location())
 
 	// now iterate in days until we hit a day that matches
 	numIterations := 0

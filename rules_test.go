@@ -175,11 +175,51 @@ func TestNaiveMultiple(t *testing.T) {
 
 func TestNaiveMultipleDays(t *testing.T) {
 	start := time.Date(2000, 2, 28, 23, 59, 0, 0, time.UTC)
-	r, _ := NewRule("*", "*", "31", "*", "*")
+	r := MustNewRule("*", "*", "31", "*", "*")
 	n1 := r.NextAfter(start)
 	e1 := time.Date(2000, 3, 31, 0, 0, 0, 0, time.UTC)
 	if n1 != e1 {
 		t.Errorf("n1 %s != %s", n1, e1)
 		return
 	}
+}
+
+func TestNaiveNextEdgeCases(t *testing.T) {
+	currentTime := time.Date(2000, 4, 28, 14, 28, 42, 0, time.UTC)
+
+	r := MustNewRule("*", "*", "*", "*", "*")
+	n := r.NextAfter(currentTime)
+	e := time.Date(2000, 4, 28, 14, 29, 0, 0, time.UTC)
+	if n != e {
+		t.Errorf("1) %s != %s", n, e)
+		return
+	}
+
+	// match in the same minute
+	r = MustNewRule("0/30", "*/2", "*", "*", "*")
+	n = r.NextAfter(currentTime)
+	e = time.Date(2000, 4, 28, 14, 30, 0, 0, time.UTC)
+	if n != e {
+		t.Errorf("2) %s != %s", n, e)
+		return
+	}
+
+	// match in the next hour
+	r = MustNewRule("0/25", "*/2", "*", "*", "*")
+	n = r.NextAfter(currentTime)
+	e = time.Date(2000, 4, 28, 16, 0, 0, 0, time.UTC)
+	if n != e {
+		t.Errorf("3) %s != %s", n, e)
+		return
+	}
+
+	// match in the next day
+	r = MustNewRule("0/30", "*/2", "30", "*", "*")
+	n = r.NextAfter(currentTime)
+	e = time.Date(2000, 4, 30, 0, 0, 0, 0, time.UTC)
+	if n != e {
+		t.Errorf("4) %s != %s", n, e)
+		return
+	}
+
 }
